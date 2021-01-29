@@ -3,6 +3,7 @@ const DayjsUtils = require("@date-io/dayjs");
 const LuxonUtils = require("@date-io/luxon");
 const MomentUtils = require("@date-io/moment");
 const DateFnsUtils = require("@date-io/date-fns");
+const TemporalUtils = require("@date-io/temporal");
 
 module.exports = (name, operation) => {
   const suite = new Benchmark.Suite("formats", {
@@ -15,6 +16,7 @@ module.exports = (name, operation) => {
     .add("luxon", operation(LuxonUtils))
     .add("moment", operation(MomentUtils))
     .add("date-fns", operation(DateFnsUtils))
+    .add("temporal", operation(TemporalUtils))
     .on("cycle", (event) => {
       console.log(String(event.target));
     })
