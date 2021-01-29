@@ -13,6 +13,7 @@
     "@date-io/dayjs": "^2.10.6",
     "@date-io/luxon": "^2.10.6",
     "@date-io/moment": "^2.10.6",
+    "@date-io/temporal": "^2.10.6",
     "benchmark": "^2.1.4"
   }
 }
