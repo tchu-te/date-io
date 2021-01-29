@@ -70,6 +70,10 @@ export default class TemporalUtils implements IUtils<Temporal.PlainDateTime> {
     return Temporal.now.plainDateTimeISO();
   };
 
+  public getCurrentLocaleCode = () => {
+    return this.locale || "en-US";
+  };
+
   public is12HourCycleInCurrentLocale = () => {
     if (typeof Intl === "undefined" || typeof Intl.DateTimeFormat === "undefined") {
       return true;
@@ -86,44 +90,8 @@ export default class TemporalUtils implements IUtils<Temporal.PlainDateTime> {
     return "";
   };
 
-  public getCurrentLocaleCode = () => {
-    return this.locale || "en-US";
-  };
-
-  public addSeconds = (date: Temporal.PlainDateTime, count: number) => {
-    return count < 0
-      ? date.add({ seconds: Math.abs(count) })
-      : date.subtract({ seconds: count });
-  };
-
-  public addMinutes = (date: Temporal.PlainDateTime, count: number) => {
-    return count < 0
-      ? date.subtract({ minutes: Math.abs(count) })
-      : date.add({ minutes: count });
-  };
-
-  public addHours = (date: Temporal.PlainDateTime, count: number) => {
-    return count < 0
-      ? date.subtract({ hours: Math.abs(count) })
-      : date.add({ hours: count });
-  };
-
-  public addDays = (date: Temporal.PlainDateTime, count: number) => {
-    return count < 0
-      ? date.subtract({ days: Math.abs(count) })
-      : date.add({ days: count });
-  };
-
-  public addWeeks = (date: Temporal.PlainDateTime, count: number) => {
-    return count < 0
-      ? date.subtract({ weeks: Math.abs(count) })
-      : date.add({ weeks: count });
-  };
-
-  public addMonths = (date: Temporal.PlainDateTime, count: number) => {
-    return count < 0
-      ? date.subtract({ months: Math.abs(count) })
-      : date.add({ months: count });
+  public isNull = (date: Temporal.PlainDateTime | null) => {
+    return date === null;
   };
 
   public isValid = (value: any) => {
@@ -137,6 +105,21 @@ export default class TemporalUtils implements IUtils<Temporal.PlainDateTime> {
     }
 
     return true;
+  };
+
+  public getDiff = (
+    value: Temporal.PlainDateTime,
+    comparing: Temporal.PlainDateTime | string,
+    unit?: Unit
+  ) => {
+    if (unit) {
+      if (unit === "quarters") {
+        return value.until(comparing).total({ unit: "months" }) / 3;
+      }
+      return value.until(comparing).total({ unit: unit as any });
+    }
+
+    return value.until(comparing).total({ unit: "nanoseconds" });
   };
 
   public isEqual = (value: any, comparing: any) => {
@@ -198,6 +181,22 @@ export default class TemporalUtils implements IUtils<Temporal.PlainDateTime> {
     return Temporal.PlainDateTime.compare(value, comparing) > 0 ? true : false;
   };
 
+  public isAfterDay = (
+    value: Temporal.PlainDateTime,
+    comparing: Temporal.PlainDateTime
+  ) => {
+    return Temporal.PlainDate.compare(value.toPlainDate(), comparing.toPlainDate()) > 0
+      ? true
+      : false;
+  };
+
+  public isAfterYear = (
+    value: Temporal.PlainDateTime,
+    comparing: Temporal.PlainDateTime
+  ) => {
+    return value.year - comparing.year > 0;
+  };
+
   public isBefore = (
     value: Temporal.PlainDateTime,
     comparing: Temporal.PlainDateTime
@@ -214,15 +213,6 @@ export default class TemporalUtils implements IUtils<Temporal.PlainDateTime> {
       : false;
   };
 
-  public isAfterDay = (
-    value: Temporal.PlainDateTime,
-    comparing: Temporal.PlainDateTime
-  ) => {
-    return Temporal.PlainDate.compare(value.toPlainDate(), comparing.toPlainDate()) > 0
-      ? true
-      : false;
-  };
-
   public isBeforeYear = (
     value: Temporal.PlainDateTime,
     comparing: Temporal.PlainDateTime
@@ -230,26 +220,71 @@ export default class TemporalUtils implements IUtils<Temporal.PlainDateTime> {
     return value.year - comparing.year < 0;
   };
 
-  public isAfterYear = (
-    value: Temporal.PlainDateTime,
-    comparing: Temporal.PlainDateTime
+  public isWithinRange = (
+    date: Temporal.PlainDateTime,
+    [start, end]: [Temporal.PlainDateTime, Temporal.PlainDateTime]
   ) => {
-    return value.year - comparing.year > 0;
+    return (
+      date.equals(start) ||
+      date.equals(end) ||
+      (this.isAfter(date, start) && this.isBefore(date, end))
+    );
   };
 
-  public getDiff = (
-    value: Temporal.PlainDateTime,
-    comparing: Temporal.PlainDateTime | string,
-    unit?: Unit
-  ) => {
-    if (unit) {
-      if (unit === "quarters") {
-        return value.until(comparing).total({ unit: "months" }) / 3;
-      }
-      return value.until(comparing).total({ unit: unit as any });
-    }
+  public startOfMonth = (value: Temporal.PlainDateTime) => {
+    const plainDate = value.toPlainDate().with({ day: 1 });
+    return plainDate.toPlainDateTime();
+  };
 
-    return value.until(comparing).total({ unit: "nanoseconds" });
+  public endOfMonth = (value: Temporal.PlainDateTime) => {
+    const plainDate = value.toPlainDate().with({ month: value.month + 1, day: 1 });
+    return plainDate.toPlainDateTime().subtract({ nanoseconds: 1 });
+  };
+
+  public startOfWeek = (value: Temporal.PlainDateTime) => {
+    const plainDate = value.toPlainDate().subtract({ days: value.dayOfWeek - 1 });
+    return plainDate.toPlainDateTime();
+  };
+
+  public endOfWeek = (value: Temporal.PlainDateTime) => {
+    const plainDate = value.toPlainDate().add({ days: 7 - (value.dayOfWeek - 1) });
+    return plainDate.toPlainDateTime().subtract({ nanoseconds: 1 });
+  };
+
+  public addSeconds = (date: Temporal.PlainDateTime, count: number) => {
+    return count < 0
+      ? date.add({ seconds: Math.abs(count) })
+      : date.subtract({ seconds: count });
+  };
+
+  public addMinutes = (date: Temporal.PlainDateTime, count: number) => {
+    return count < 0
+      ? date.subtract({ minutes: Math.abs(count) })
+      : date.add({ minutes: count });
+  };
+
+  public addHours = (date: Temporal.PlainDateTime, count: number) => {
+    return count < 0
+      ? date.subtract({ hours: Math.abs(count) })
+      : date.add({ hours: count });
+  };
+
+  public addDays = (date: Temporal.PlainDateTime, count: number) => {
+    return count < 0
+      ? date.subtract({ days: Math.abs(count) })
+      : date.add({ days: count });
+  };
+
+  public addWeeks = (date: Temporal.PlainDateTime, count: number) => {
+    return count < 0
+      ? date.subtract({ weeks: Math.abs(count) })
+      : date.add({ weeks: count });
+  };
+
+  public addMonths = (date: Temporal.PlainDateTime, count: number) => {
+    return count < 0
+      ? date.subtract({ months: Math.abs(count) })
+      : date.add({ months: count });
   };
 
   public startOfDay = (value: Temporal.PlainDateTime) => {
@@ -311,45 +346,6 @@ export default class TemporalUtils implements IUtils<Temporal.PlainDateTime> {
     return value.with({ month: count });
   };
 
-  public getYear = (value: Temporal.PlainDateTime) => {
-    return value.year;
-  };
-
-  public setYear = (value: Temporal.PlainDateTime, year: number) => {
-    return value.with({ year });
-  };
-
-  public mergeDateAndTime = (
-    date: Temporal.PlainDateTime,
-    time: Temporal.PlainDateTime
-  ) => {
-    return date.with({
-      second: time.second,
-      hour: time.hour,
-      minute: time.minute,
-    });
-  };
-
-  public startOfMonth = (value: Temporal.PlainDateTime) => {
-    const plainDate = value.toPlainDate().with({ day: 1 });
-    return plainDate.toPlainDateTime();
-  };
-
-  public endOfMonth = (value: Temporal.PlainDateTime) => {
-    const plainDate = value.toPlainDate().with({ month: value.month + 1, day: 1 });
-    return plainDate.toPlainDateTime().subtract({ nanoseconds: 1 });
-  };
-
-  public startOfWeek = (value: Temporal.PlainDateTime) => {
-    const plainDate = value.toPlainDate().subtract({ days: value.dayOfWeek - 1 });
-    return plainDate.toPlainDateTime();
-  };
-
-  public endOfWeek = (value: Temporal.PlainDateTime) => {
-    const plainDate = value.toPlainDate().add({ days: 7 - (value.dayOfWeek - 1) });
-    return plainDate.toPlainDateTime().subtract({ nanoseconds: 1 });
-  };
-
   public getNextMonth = (value: Temporal.PlainDateTime) => {
     return value.add({ months: 1 });
   };
@@ -369,6 +365,25 @@ export default class TemporalUtils implements IUtils<Temporal.PlainDateTime> {
     }
 
     return monthArray;
+  };
+
+  public getYear = (value: Temporal.PlainDateTime) => {
+    return value.year;
+  };
+
+  public setYear = (value: Temporal.PlainDateTime, year: number) => {
+    return value.with({ year });
+  };
+
+  public mergeDateAndTime = (
+    date: Temporal.PlainDateTime,
+    time: Temporal.PlainDateTime
+  ) => {
+    return date.with({
+      second: time.second,
+      hour: time.hour,
+      minute: time.minute,
+    });
   };
 
   public getWeekdays = () => {
@@ -426,20 +441,5 @@ export default class TemporalUtils implements IUtils<Temporal.PlainDateTime> {
   public getMeridiemText = (ampm: "am" | "pm") => {
     // How to do conditional formatting without locale
     return ampm;
-  };
-
-  public isNull = (date: Temporal.PlainDateTime | null) => {
-    return date === null;
-  };
-
-  public isWithinRange = (
-    date: Temporal.PlainDateTime,
-    [start, end]: [Temporal.PlainDateTime, Temporal.PlainDateTime]
-  ) => {
-    return (
-      date.equals(start) ||
-      date.equals(end) ||
-      (this.isAfter(date, start) && this.isBefore(date, end))
-    );
   };
 }
